@@ -1,0 +1,339 @@
+// ---------------------------------------------------------------------------
+// Register Page
+// ---------------------------------------------------------------------------
+
+.register {
+  min-height: 100vh;
+  background: $body-bg;
+
+  // -------------------------------------------------------------------------
+  // Left / Branding Section
+  // -------------------------------------------------------------------------
+
+  &__left-section {
+    position: relative;
+    min-height: 100vh;
+    overflow: hidden;
+    background: $sidebar-bg;
+    color: #ffffff;
+
+    &::before {
+      position: absolute;
+      top: -180px;
+      right: -180px;
+      width: 500px;
+      height: 500px;
+      border-radius: 50%;
+      background: rgba(67, 97, 238, 0.2);
+      content: "";
+    }
+
+    &::after {
+      position: absolute;
+      bottom: -180px;
+      left: -180px;
+      width: 450px;
+      height: 450px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.04);
+      content: "";
+    }
+  }
+
+  &__overlay {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    width: 100%;
+    min-height: 100vh;
+    flex-direction: column;
+    padding: 2.5rem;
+  }
+
+  &__brand {
+    color: #ffffff;
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+
+  // -------------------------------------------------------------------------
+  // Hero Content
+  // -------------------------------------------------------------------------
+
+  &__hero-content {
+    max-width: 34rem;
+    margin: auto 0;
+
+    h1 {
+      margin-bottom: 1.25rem;
+      color: #ffffff;
+      font-size: 2.75rem;
+      font-weight: 600;
+      line-height: 1.2;
+
+      span {
+        display: block;
+        color: #8fa5ff;
+      }
+    }
+
+    p {
+      max-width: 30rem;
+      margin-bottom: 2rem;
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 0.95rem;
+      line-height: 1.7;
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Features
+  // -------------------------------------------------------------------------
+
+  &__feature-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.875rem;
+  }
+
+  &__feature-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 0.875rem;
+
+    span {
+      display: inline-grid;
+      flex-shrink: 0;
+      width: 1.75rem;
+      height: 1.75rem;
+      place-items: center;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.08);
+      color: #ffffff;
+      font-size: 0.75rem;
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Right / Form Section
+  // -------------------------------------------------------------------------
+
+  &__form-section {
+    display: flex;
+    min-height: 100vh;
+    align-items: center;
+    justify-content: center;
+    padding: 2.5rem 3rem;
+    background: #ffffff;
+  }
+
+  &__form-container {
+    width: 100%;
+    max-width: 38rem;
+
+    .form-label {
+      margin-bottom: 0.5rem;
+      color: $body-color;
+      font-size: 0.8125rem;
+      font-weight: 500;
+    }
+
+    .form-control,
+    .form-select {
+      min-height: 2.75rem;
+      padding: 0.625rem 0.75rem;
+      border-color: $border-color;
+      border-radius: $border-radius;
+      color: $body-color;
+      background-color: #ffffff;
+      font-size: 0.8125rem;
+      box-shadow: none;
+
+      &::placeholder {
+        color: $text-muted;
+      }
+
+      &:focus {
+        border-color: $primary;
+        box-shadow: 0 0 0 0.15rem rgba(67, 97, 238, 0.12);
+      }
+    }
+
+    .form-select {
+      cursor: pointer;
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Form Header
+  // -------------------------------------------------------------------------
+
+  &__form-header {
+    margin-bottom: 1.75rem;
+
+    h2 {
+      margin-bottom: 0.5rem;
+      color: $headings-color;
+      font-size: 1.5rem;
+      font-weight: $headings-font-weight;
+    }
+
+    p {
+      margin: 0;
+      color: $text-muted;
+      font-size: 0.8125rem;
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Section Title
+  // -------------------------------------------------------------------------
+
+  &__section-title {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 1.25rem 0 1rem;
+    color: $headings-color;
+    font-size: 0.875rem;
+    font-weight: 600;
+
+    &::after {
+      flex: 1;
+      height: 1px;
+      background: $border-color;
+      content: "";
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Register Button
+  // -------------------------------------------------------------------------
+
+  &__button {
+    min-height: 2.75rem;
+    border: 0;
+    border-radius: $border-radius;
+    background: $primary;
+    color: #ffffff;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    transition:
+      background-color $layout-transition,
+      box-shadow $layout-transition,
+      transform $layout-transition;
+
+    &:hover {
+      border-color: $primary;
+      background: shade-color($primary, 8%);
+      color: #ffffff;
+      box-shadow: $box-shadow-sm;
+      transform: translateY(-1px);
+    }
+
+    &:active {
+      background: shade-color($primary, 12%);
+      color: #ffffff;
+      transform: translateY(0);
+    }
+
+    &:focus {
+      background: $primary;
+      color: #ffffff;
+      box-shadow: 0 0 0 0.15rem rgba(67, 97, 238, 0.18);
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Login
+  // -------------------------------------------------------------------------
+
+  &__login-text {
+    margin-top: 1.25rem;
+    color: $text-muted;
+    font-size: 0.8125rem;
+    text-align: center;
+
+    a {
+      color: $primary;
+      font-weight: 500;
+      text-decoration: none;
+
+      &:hover {
+        color: shade-color($primary, 15%);
+        text-decoration: underline;
+      }
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Mobile Brand
+  // -------------------------------------------------------------------------
+
+  &__mobile-brand {
+    display: none;
+    margin-bottom: 2rem;
+    color: $primary;
+    font-size: 1.5rem;
+    font-weight: 700;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Responsive
+// ---------------------------------------------------------------------------
+
+@media (max-width: 991.98px) {
+  .register {
+    &__form-section {
+      padding: 2.5rem 2rem;
+    }
+
+    &__form-container {
+      max-width: 40rem;
+    }
+
+    &__mobile-brand {
+      display: block;
+    }
+  }
+}
+
+@media (max-width: 767.98px) {
+  .register {
+    &__form-section {
+      padding: 2rem 1.5rem;
+    }
+
+    &__form-header {
+      h2 {
+        font-size: 1.375rem;
+      }
+    }
+  }
+}
+
+@media (max-width: 575.98px) {
+  .register {
+    &__form-section {
+      padding: 1.5rem 1rem;
+    }
+
+    &__mobile-brand {
+      margin-bottom: 1.5rem;
+    }
+
+    &__form-header {
+      margin-bottom: 1.5rem;
+    }
+
+    &__section-title {
+      margin-top: 1rem;
+    }
+  }
+}
+
