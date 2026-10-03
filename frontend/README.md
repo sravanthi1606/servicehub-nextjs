@@ -1,36 +1,51 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ServiceHub — Frontend
 
-## Getting Started
+Next.js 16 (App Router) · React 19 · TypeScript · Bootstrap 5.3 + React Bootstrap · SCSS · Bootstrap Icons
 
-First, run the development server:
+## Getting started
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev      # http://localhost:3000
+npm run build    # production build + type check
+npm run lint
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open `/` and pick a role, or go straight to `/admin/dashboard`, `/provider/dashboard` or `/customer/dashboard`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Status
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+**Phase 1 — foundation (done):** dashboard shell, role-based sidebar, three dashboards on mock data.
+Pages for later phases show a "coming soon" placeholder inside the dashboard layout.
 
-## Learn More
+## Structure
 
-To learn more about Next.js, take a look at the following resources:
+```text
+app/
+  (public)/page.tsx          Temporary role picker (real Home page in Phase 2)
+  admin|provider|customer/
+    layout.tsx               DashboardLayout + that role's menu and (mock) user
+    dashboard/page.tsx       Role dashboard (Server Component, awaits mock data)
+    loading.tsx / error.tsx  Route-level skeleton and error boundary
+    [...slug]/page.tsx       "Coming soon" for planned pages, 404 for anything else
+  not-found.tsx
+  globals.scss               Bootstrap + our variables and partials
+components/
+  layout/     DashboardLayout, Sidebar, TopNavbar, UserMenu, Breadcrumb, PageHeader, ComingSoon
+  common/     Button, Loading, EmptyState, ErrorState, StatusBadge, Avatar, SectionCard
+  dashboard/  StatCard, StatGrid, BarChart, StatusBreakdown, DashboardSkeleton
+  bookings/   BookingsTable, UpcomingBookingsList
+  providers/  TopProvidersList, PerformanceSummary
+  services/   ServiceCard
+lib/
+  navigation.ts   Sidebar menu per role (single source of truth)
+  constants.ts    Role labels, booking status colours/icons, currency
+  auth.ts         Mock current user (replaced by JWT in Phase 5)
+  format.ts       Currency / date / time formatting
+  mock-data/      Async functions shaped like the future Go API
+hooks/useMediaQuery.ts
+types/            User, Service, Booking, Provider, dashboard view models
+styles/           variables, layout, sidebar, navbar, components, dashboard
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Hiding menu items is a UI convenience only — authorization will be enforced by the Go API.

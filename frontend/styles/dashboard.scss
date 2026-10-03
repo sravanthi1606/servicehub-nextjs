@@ -1,0 +1,203 @@
+// Dashboard widgets.
+
+.stat-card {
+  height: 100%;
+
+  &__label {
+    margin-bottom: 0.5rem;
+    color: $text-muted;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  &__value {
+    margin-bottom: 0.25rem;
+    font-size: 1.5rem;
+    font-weight: 600;
+  }
+
+  &__change {
+    font-size: $font-size-sm;
+  }
+}
+
+.welcome-banner {
+  background: linear-gradient(120deg, $primary, shade-color($primary, 35%));
+  color: $white;
+
+  h2 {
+    color: $white;
+  }
+
+  p {
+    color: rgba($white, 0.85);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Bar chart (single series, HTML/CSS — no chart library)
+// ---------------------------------------------------------------------------
+.bar-chart {
+  --bar-chart-height: 15rem;
+
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.75rem;
+  margin: 0;
+
+  &__y-axis {
+    position: relative;
+    height: var(--bar-chart-height);
+    min-width: 2.5rem;
+    color: $text-muted;
+    font-size: 0.75rem;
+  }
+
+  &__tick-label {
+    position: absolute;
+    right: 0;
+    transform: translateY(50%);
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__plot {
+    position: relative;
+    height: var(--bar-chart-height);
+  }
+
+  &__gridline {
+    position: absolute;
+    right: 0;
+    left: 0;
+    border-top: 1px dashed $border-color;
+
+    &--baseline {
+      border-top: 1px solid $gray-400;
+    }
+  }
+
+  &__bars,
+  &__labels {
+    display: flex;
+    gap: 2px;
+  }
+
+  &__bars {
+    position: relative;
+    height: 100%;
+  }
+
+  // Each column is the hover target — much bigger than the bar itself.
+  &__col {
+    position: relative;
+    display: flex;
+    flex: 1;
+    align-items: flex-end;
+    justify-content: center;
+
+    &:hover .bar-chart__bar {
+      background: shade-color($primary, 20%);
+    }
+
+    &:hover .bar-chart__tooltip {
+      opacity: 1;
+    }
+  }
+
+  &__bar {
+    width: min(60%, 2.25rem);
+    height: var(--bar-height);
+    border-radius: 4px 4px 0 0;
+    background: $primary;
+    transition: background-color 0.15s ease;
+  }
+
+  &__tooltip {
+    position: absolute;
+    bottom: calc(var(--bar-height) + 0.375rem);
+    padding: 0.25rem 0.5rem;
+    border-radius: $border-radius;
+    background: $gray-900;
+    color: $white;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+  }
+
+  &__labels {
+    grid-column: 2;
+    padding-top: 0.5rem;
+    color: $text-muted;
+    font-size: 0.75rem;
+
+    span {
+      flex: 1;
+      text-align: center;
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Lists
+// ---------------------------------------------------------------------------
+.date-tile {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 3.25rem;
+  height: 3.25rem;
+  border-radius: $border-radius-lg;
+  background: tint-color($primary, 90%);
+  color: shade-color($primary, 30%);
+  line-height: 1.1;
+
+  &__day {
+    font-size: 1.125rem;
+    font-weight: 700;
+  }
+
+  &__month {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+}
+
+.metric-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  > li + li {
+    margin-top: 1.125rem;
+  }
+
+  .progress {
+    height: 0.375rem;
+    margin-top: 0.375rem;
+  }
+}
+
+.service-card {
+  height: 100%;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+
+  &:hover {
+    box-shadow: $box-shadow;
+    transform: translateY(-2px);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+
+    &:hover {
+      transform: none;
+    }
+  }
+}

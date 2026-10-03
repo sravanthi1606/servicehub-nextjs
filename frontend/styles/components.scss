@@ -1,0 +1,110 @@
+// Shared component styles.
+
+.card {
+  box-shadow: $card-shadow;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid $border-color;
+}
+
+.card-title {
+  margin-bottom: 0;
+  font-size: 1rem;
+}
+
+.avatar {
+  display: inline-grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  background: tint-color($primary, 85%);
+  color: shade-color($primary, 30%);
+  font-size: 0.8125rem;
+  font-weight: 600;
+
+  &--sm {
+    width: 2rem;
+    height: 2rem;
+    font-size: 0.75rem;
+  }
+
+  &--lg {
+    width: 3rem;
+    height: 3rem;
+    font-size: 1rem;
+  }
+}
+
+// Soft icon tiles used by stat cards and service cards.
+.icon-tile {
+  display: inline-grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: $border-radius-lg;
+  font-size: 1.375rem;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-weight: 500;
+}
+
+.state-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 2.5rem 1rem;
+  text-align: center;
+
+  &__icon {
+    display: inline-grid;
+    place-items: center;
+    width: 3.5rem;
+    height: 3.5rem;
+    margin-bottom: 0.5rem;
+    border-radius: 50%;
+    font-size: 1.5rem;
+  }
+
+  &__title {
+    margin: 0;
+    font-size: 1rem;
+  }
+
+  &__message {
+    max-width: 28rem;
+    margin: 0;
+    color: $text-muted;
+  }
+}
+
+.table {
+  > thead th {
+    background: $gray-100;
+    color: $text-muted;
+    font-size: 0.75rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  > :not(caption) > * > *:first-child {
+    padding-left: $card-spacer-x;
+  }
+
+  > :not(caption) > * > *:last-child {
+    padding-right: $card-spacer-x;
+  }
+}

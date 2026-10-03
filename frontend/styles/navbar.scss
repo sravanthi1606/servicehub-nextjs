@@ -1,0 +1,84 @@
+.app-topbar {
+  position: sticky;
+  top: 0;
+  z-index: $zindex-sticky;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  height: $topbar-height;
+  padding: 0 $content-padding-x;
+  background: $topbar-bg;
+  box-shadow: $card-shadow;
+
+  @include media-breakpoint-down(sm) {
+    padding: 0 1rem;
+  }
+}
+
+.topbar-toggle {
+  display: inline-grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 0;
+  border-radius: $border-radius;
+  background: none;
+  color: $body-color;
+  font-size: 1.5rem;
+
+  &:hover {
+    background: $gray-100;
+  }
+}
+
+// Brand shown in the topbar only while the sidebar is off-canvas.
+.topbar-brand {
+  color: $headings-color;
+  font-weight: 700;
+  text-decoration: none;
+
+  @include media-breakpoint-up($sidebar-breakpoint) {
+    display: none;
+  }
+}
+
+.user-menu-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  max-width: 16rem;
+  padding: 0.375rem 0.5rem;
+  border: 0;
+  border-radius: $border-radius;
+  background: none;
+  color: $body-color;
+  text-align: left;
+
+  &:hover,
+  &[aria-expanded="true"] {
+    background: $gray-100;
+  }
+
+  &__text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    line-height: 1.2;
+
+    @include media-breakpoint-down(md) {
+      display: none;
+    }
+  }
+
+  &__name {
+    overflow: hidden;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__role {
+    color: $text-muted;
+    font-size: $font-size-sm;
+  }
+}

@@ -1,0 +1,76 @@
+// Shell: fixed sidebar + main column (sticky topbar, content, footer).
+
+.app-main {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  transition: margin-left $layout-transition;
+
+  @include media-breakpoint-up($sidebar-breakpoint) {
+    margin-left: $sidebar-width;
+
+    .app-layout.is-collapsed & {
+      margin-left: $sidebar-collapsed-width;
+    }
+  }
+}
+
+.app-content {
+  flex: 1;
+  padding: 1.5rem $content-padding-x;
+
+  @include media-breakpoint-down(sm) {
+    padding: 1rem;
+  }
+}
+
+.app-footer {
+  padding: 1rem $content-padding-x;
+  border-top: 1px solid $border-color;
+  background: $topbar-bg;
+  color: $text-muted;
+  font-size: $font-size-sm;
+}
+
+// Dims the page behind the mobile sidebar.
+.app-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: $zindex-offcanvas-backdrop;
+  border: 0;
+  background: rgba($black, 0.45);
+
+  @include media-breakpoint-up($sidebar-breakpoint) {
+    display: none;
+  }
+}
+
+// Page title row: title on the left, breadcrumb on the right.
+.page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  margin-bottom: 1.5rem;
+
+  &__title {
+    margin: 0;
+    font-size: 1.125rem;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+  }
+
+  .breadcrumb {
+    font-size: $font-size-sm;
+  }
+
+  .breadcrumb-item a {
+    color: $body-color;
+    text-decoration: none;
+
+    &:hover {
+      color: $primary;
+    }
+  }
+}

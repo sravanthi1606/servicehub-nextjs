@@ -1,0 +1,15 @@
+// Order matters: our variables override Bootstrap's !default values,
+// then our partials can use Bootstrap's variables and mixins.
+@import "../styles/variables";
+// Relative path: Turbopack's Sass importer can't resolve Bootstrap's own nested @imports.
+@import "../node_modules/bootstrap/scss/bootstrap";
+
+@import "../styles/layout";
+@import "../styles/sidebar";
+@import "../styles/navbar";
+@import "../styles/components";
+@import "../styles/dashboard";
+
+body {
+  -webkit-font-smoothing: antialiased;
+}
