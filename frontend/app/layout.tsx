@@ -3,6 +3,8 @@ import { Inter } from "next/font/google";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import "./globals.scss";
 
+import ReduxProvider from "@/components/ReduxProvider";
+
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
@@ -14,13 +16,18 @@ export const metadata: Metadata = {
     default: "ServiceHub — Book trusted local services",
     template: "%s | ServiceHub",
   },
-  description: "ServiceHub connects customers with trusted service providers for cleaning, repairs, beauty and more.",
+  description:
+    "ServiceHub connects customers with trusted service providers for cleaning, repairs, beauty and more.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={inter.variable}>
-      <body>{children}</body>
+      <body>
+        <ReduxProvider>
+          {children}
+        </ReduxProvider>
+      </body>
     </html>
   );
 }
