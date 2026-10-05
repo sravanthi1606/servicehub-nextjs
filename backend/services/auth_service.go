@@ -74,3 +74,49 @@ func RegisterUser(
 
 	return user, nil
 }
+
+func LoginUser(
+	ctx context.Context,
+	mongoClient *mongo.Client,
+	request models.LoginRequest,
+) (models.User, string, error) {
+
+	db := mongoClient.Database("servicehub")
+	usersCollection := db.Collection("users")
+
+	var user models.User
+
+	// Find user by email
+	err := usersCollection.FindOne(
+		ctx,
+		bson.M{
+			"email": request.Email,
+		},
+	).Decode(&user)
+
+	if err != nil {
+		return models.User{}, "", errors.New("invalid email or password")
+	}
+
+	// Compare entered password with stored hashed password
+	err = utils.CheckPassword(
+		request.Password,
+		user.Password,
+	)
+
+	if err != nil {
+		return models.User{}, "", errors.New("invalid email or password")
+	}
+
+	// Generate JWT
+	token, err := utils.GenerateToken(
+		user.ID.Hex(),
+		user.Role,
+	)
+
+	if err != nil {
+		return models.User{}, "", err
+	}
+
+	return user, token, nil
+}
