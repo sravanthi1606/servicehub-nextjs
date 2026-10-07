@@ -10,7 +10,13 @@ import (
 
 func SetupRoutes(router *gin.Engine, mongoClient *mongo.Client) {
 
-	// Public routes
+	// MongoDB database
+	db := mongoClient.Database("servicehub")
+
+	// =====================================================
+	// PUBLIC ROUTES
+	// =====================================================
+
 	auth := router.Group("/api/auth")
 
 	{
@@ -23,69 +29,59 @@ func SetupRoutes(router *gin.Engine, mongoClient *mongo.Client) {
 		})
 	}
 
-	// Authentication required
+	// =====================================================
+	// PROTECTED ROUTES
+	// =====================================================
+
 	protected := router.Group("/api")
 
 	protected.Use(middleware.AuthMiddleware())
 
+	// =====================================================
+	// CUSTOMER ROUTES
+	// =====================================================
+
+	customer := protected.Group("/customer")
+
+	customer.Use(middleware.RoleMiddleware("CUSTOMER"))
+
 	{
-		// Any logged-in user
-		protected.GET("/test-auth", func(c *gin.Context) {
+		// Customer routes will be added here
+	}
 
-			userID, _ := c.Get("userId")
-			role, _ := c.Get("role")
+	// =====================================================
+	// PROVIDER ROUTES
+	// =====================================================
 
-			c.JSON(200, gin.H{
-				"success": true,
-				"message": "Authentication successful",
-				"userId":  userID,
-				"role":    role,
-			})
+	provider := protected.Group("/provider")
+	provider.Use(middleware.RoleMiddleware("PROVIDER"))
+	{
+		provider.POST("/services", func(c *gin.Context) {
+			controllers.CreateService(c, db)
 		})
 
-		// Customer only
-		customer := protected.Group("/customer")
+		provider.GET("/services", func(c *gin.Context) {
+			controllers.GetProviderServices(c, db)
+		})
 
-		customer.Use(middleware.RoleMiddleware("CUSTOMER"))
+		provider.PUT("/services/:id", func(c *gin.Context) {
+			controllers.UpdateService(c, db)
+		})
 
-		{
-			customer.GET("/test", func(c *gin.Context) {
+		provider.PATCH("/services/:id/status", func(c *gin.Context) {
+			controllers.UpdateServiceStatus(c, db)
+		})
+	}
 
-				c.JSON(200, gin.H{
-					"success": true,
-					"message": "Customer API accessed successfully",
-				})
-			})
-		}
+	// =====================================================
+	// ADMIN ROUTES
+	// =====================================================
 
-		// Provider only
-		provider := protected.Group("/provider")
+	admin := protected.Group("/admin")
 
-		provider.Use(middleware.RoleMiddleware("PROVIDER"))
+	admin.Use(middleware.RoleMiddleware("ADMIN"))
 
-		{
-			provider.GET("/test", func(c *gin.Context) {
-
-				c.JSON(200, gin.H{
-					"success": true,
-					"message": "Provider API accessed successfully",
-				})
-			})
-		}
-
-		// Admin only
-		admin := protected.Group("/admin")
-
-		admin.Use(middleware.RoleMiddleware("ADMIN"))
-
-		{
-			admin.GET("/test", func(c *gin.Context) {
-
-				c.JSON(200, gin.H{
-					"success": true,
-					"message": "Admin API accessed successfully",
-				})
-			})
-		}
+	{
+		// Admin routes will be added here
 	}
 }
