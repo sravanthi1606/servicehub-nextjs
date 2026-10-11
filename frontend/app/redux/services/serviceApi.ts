@@ -1,5 +1,23 @@
+
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import type { RootState } from "../store";
+
+interface CustomerService {
+id: string;
+name: string;
+description: string;
+category: string;
+price: number;
+duration: string;
+status: string;
+}
+
+interface CustomerServicesResponse {
+success: boolean;
+data: CustomerService[];
+message?: string;
+}
+
 
 const baseQuery = fetchBaseQuery({
   baseUrl: process.env.NEXT_PUBLIC_API_BASE_URL,
@@ -20,7 +38,7 @@ export const serviceApi = createApi({
 
   baseQuery,
 
-  tagTypes: ["ProviderServices"],
+  tagTypes: ["ProviderServices", "CustomerServices"],
 
   endpoints: (builder) => ({
     // Create Service
@@ -33,6 +51,7 @@ export const serviceApi = createApi({
       invalidatesTags: ["ProviderServices"],
     }),
 
+    // Update Service
     updateService: builder.mutation({
       query: ({ id, ...serviceData }) => ({
         url: `/provider/services/${id}`,
@@ -58,7 +77,16 @@ export const serviceApi = createApi({
         method: "PATCH",
         body: { status },
       }),
-      invalidatesTags: ["ProviderServices"],
+      invalidatesTags: ["ProviderServices", "CustomerServices"],
+    }),
+
+    // Get Active Services for Customers
+    getCustomerServices: builder.query<CustomerServicesResponse, void>({
+      query: () => ({
+        url: "/customer/services",
+        method: "GET",
+      }),
+      providesTags: ["CustomerServices"],
     }),
   }),
 });
@@ -68,4 +96,5 @@ export const {
   useUpdateServiceMutation,
   useGetProviderServicesQuery,
   useUpdateServiceStatusMutation,
+  useGetCustomerServicesQuery,
 } = serviceApi;

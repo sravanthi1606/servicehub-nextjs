@@ -46,7 +46,12 @@ func SetupRoutes(router *gin.Engine, mongoClient *mongo.Client) {
 	customer.Use(middleware.RoleMiddleware("CUSTOMER"))
 
 	{
-		// Customer routes will be added here
+		customer.GET("/services", func(c *gin.Context) {
+			controllers.GetCustomerServices(c, db)
+		})
+		customer.POST("/bookings", func(c *gin.Context) {
+			controllers.CreateBooking(c, db)
+		})
 	}
 
 	// =====================================================
