@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useGetCustomerServicesQuery } from "@/app/redux/services/serviceApi";
-import "./customer-services.scss";
+import "@/styles/customer-services.scss";
 
 interface Service {
   id: string;
