@@ -3,19 +3,109 @@ import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import type { RootState } from "../store";
 
 interface CustomerService {
-id: string;
-name: string;
-description: string;
-category: string;
-price: number;
-duration: string;
-status: string;
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  price: number;
+  duration: string;
+  status: string;
 }
 
 interface CustomerServicesResponse {
-success: boolean;
-data: CustomerService[];
-message?: string;
+  success: boolean;
+  data: CustomerService[];
+  message?: string;
+}
+
+interface CreateBookingRequest {
+  serviceId: string;
+  bookingDate: string;
+  bookingTime: string;
+  country: string;
+  state: string;
+  district: string;
+  city: string;
+  pincode: string;
+  area: string;
+  buildingNumber: string;
+  buildingName: string;
+  flatNumber: string;
+  block: string;
+  street: string;
+  landmark: string;
+  latitude: number;
+  longitude: number;
+  notes: string;
+}
+
+interface CustomerBookingResponse {
+  id: string;
+  customerId: string;
+  providerId?: string;
+  serviceId: string;
+  bookingDate: string;
+  bookingTime: string;
+  price: number;
+  status: string;
+  notes: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface CreateBookingResponse {
+  success: boolean;
+  message?: string;
+  data?: CustomerBookingResponse;
+}
+
+interface CustomerBookingsResponse {
+  success: boolean;
+  data: CustomerBookingResponse[];
+  message?: string;
+}
+
+
+export interface ProviderBookingAddress {
+  country: string;
+  state: string;
+  district: string;
+  city: string;
+  pincode: string;
+  area: string;
+  buildingNumber: string;
+  buildingName: string;
+  flatNumber: string;
+  block: string;
+  street: string;
+  landmark: string;
+}
+
+export interface ProviderBooking {
+  id: string;
+  customerId: string;
+  providerId?: string | null;
+  serviceId: string;
+  bookingDate: string;
+  bookingTime: string;
+  address: ProviderBookingAddress;
+  price: number;
+  status: string;
+  notes: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProviderBookingsResponse {
+  success: boolean;
+  data: ProviderBooking[];
+  message?: string;
+}
+
+export interface AcceptBookingResponse {
+  success: boolean;
+  message: string;
+  data: ProviderBooking;
 }
 
 
@@ -38,7 +128,7 @@ export const serviceApi = createApi({
 
   baseQuery,
 
-  tagTypes: ["ProviderServices", "CustomerServices"],
+  tagTypes: ["ProviderServices", "CustomerServices", "CustomerBookings", "ProviderBookings"],
 
   endpoints: (builder) => ({
     // Create Service
@@ -88,6 +178,57 @@ export const serviceApi = createApi({
       }),
       providesTags: ["CustomerServices"],
     }),
+
+    createBooking: builder.mutation<CreateBookingResponse, CreateBookingRequest>({
+      query: (bookingData) => ({
+        url: "/customer/bookings",
+        method: "POST",
+        body: bookingData,
+      }),
+      invalidatesTags: ["CustomerBookings"],
+    }),
+
+    // Get Customer Booking History
+    getCustomerBookings: builder.query<CustomerBookingsResponse, void>({
+      query: () => ({
+        url: "/customer/bookings",
+        method: "GET",
+      }),
+      providesTags: ["CustomerBookings"],
+    }),
+
+
+    getProviderBookings: builder.query<ProviderBookingsResponse, void>({
+      query: () => ({
+        url: "/provider/bookings",
+        method: "GET",
+      }),
+      providesTags: ["ProviderBookings"],
+    }),
+
+    acceptProviderBooking: builder.mutation<
+      AcceptBookingResponse,
+      string
+    >({
+      query: (bookingId) => ({
+        url: `/provider/bookings/${bookingId}/accept`,
+        method: "PATCH",
+      }),
+      invalidatesTags: ["ProviderBookings"],
+    }),
+
+
+    getProviderBookingById: builder.query<
+      { success: boolean; data: ProviderBooking; message?: string },
+      string
+    >({
+      query: (bookingId) => ({
+        url: `/provider/bookings/${bookingId}`,
+        method: "GET",
+      }),
+    }),
+
+
   }),
 });
 
@@ -97,4 +238,9 @@ export const {
   useGetProviderServicesQuery,
   useUpdateServiceStatusMutation,
   useGetCustomerServicesQuery,
+  useCreateBookingMutation,
+  useGetCustomerBookingsQuery,
+  useGetProviderBookingsQuery,
+  useAcceptProviderBookingMutation,
+  useGetProviderBookingByIdQuery,
 } = serviceApi;

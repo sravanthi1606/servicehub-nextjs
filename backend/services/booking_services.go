@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/sravanthi1606/servicehub-api/models"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
 func CreateBooking(
@@ -117,6 +119,243 @@ func CreateBooking(
 	}
 
 	booking.ID = result.InsertedID.(bson.ObjectID)
+
+	return &booking, nil
+}
+
+func GetCustomerBookings(
+	ctx context.Context,
+	db *mongo.Database,
+	customerID string,
+) ([]models.Booking, error) {
+
+	var bookings []models.Booking
+
+	collection := db.Collection("bookings")
+
+	customerObjectID, err := bson.ObjectIDFromHex(customerID)
+	if err != nil {
+		return nil, err
+	}
+
+	filter := bson.M{
+		"customerId": customerObjectID,
+	}
+
+	// Add logs here, before collection.Find()
+	fmt.Println("Query customer ID:", customerID)
+	fmt.Printf("Query filter: %#v\n", filter)
+
+	opts := options.Find().
+		SetSort(bson.D{
+			{Key: "createdAt", Value: -1},
+		})
+
+	cursor, err := collection.Find(ctx, filter, opts)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	if err := cursor.All(ctx, &bookings); err != nil {
+		return nil, err
+	}
+
+	if bookings == nil {
+		bookings = []models.Booking{}
+	}
+
+	return bookings, nil
+}
+
+func GetOpenProviderBookings(
+	ctx context.Context,
+	db *mongo.Database,
+) ([]models.Booking, error) {
+
+	var bookings []models.Booking
+
+	collection := db.Collection("bookings")
+
+	filter := bson.M{
+		"status": "OPEN",
+		"$or": []bson.M{
+			{"providerId": bson.M{"$exists": false}},
+			{"providerId": nil},
+		},
+	}
+
+	opts := options.Find().SetSort(bson.D{
+		{Key: "createdAt", Value: -1},
+	})
+
+	cursor, err := collection.Find(ctx, filter, opts)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	if err := cursor.All(ctx, &bookings); err != nil {
+		return nil, err
+	}
+
+	if bookings == nil {
+		bookings = []models.Booking{}
+	}
+
+	return bookings, nil
+}
+
+func AcceptProviderBooking(
+	ctx context.Context,
+	db *mongo.Database,
+	providerID string,
+	bookingID string,
+) (*models.Booking, error) {
+
+	providerObjectID, err := bson.ObjectIDFromHex(providerID)
+	if err != nil {
+		return nil, errors.New("invalid provider ID")
+	}
+
+	bookingObjectID, err := bson.ObjectIDFromHex(bookingID)
+	if err != nil {
+		return nil, errors.New("invalid booking ID")
+	}
+
+	collection := db.Collection("bookings")
+	now := time.Now()
+
+	// Atomically accept only an unassigned OPEN booking.
+	filter := bson.M{
+		"_id":    bookingObjectID,
+		"status": "OPEN",
+		"$or": []bson.M{
+			{"providerId": bson.M{"$exists": false}},
+			{"providerId": nil},
+		},
+	}
+
+	update := bson.M{
+		"$set": bson.M{
+			"providerId": providerObjectID,
+			"status":     "ACCEPTED",
+			"updatedAt":  now,
+		},
+	}
+
+	opts := options.FindOneAndUpdate().
+		SetReturnDocument(options.After)
+
+	var booking models.Booking
+
+	err = collection.FindOneAndUpdate(
+		ctx,
+		filter,
+		update,
+		opts,
+	).Decode(&booking)
+
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, errors.New(
+				"booking not found or already accepted by another provider",
+			)
+		}
+
+		return nil, err
+	}
+
+	return &booking, nil
+}
+
+func GetProviderBookings(
+	ctx context.Context,
+	db *mongo.Database,
+	providerID string,
+) ([]models.Booking, error) {
+
+	providerObjectID, err := bson.ObjectIDFromHex(providerID)
+	if err != nil {
+		return nil, errors.New("invalid provider ID")
+	}
+
+	collection := db.Collection("bookings")
+
+	filter := bson.M{
+		"$or": []bson.M{
+			{
+				"status":     "OPEN",
+				"providerId": nil,
+			},
+			{
+				"providerId": providerObjectID,
+			},
+		},
+	}
+
+	opts := options.Find().SetSort(
+		bson.D{{Key: "createdAt", Value: -1}},
+	)
+
+	cursor, err := collection.Find(ctx, filter, opts)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var bookings []models.Booking
+
+	if err := cursor.All(ctx, &bookings); err != nil {
+		return nil, err
+	}
+
+	if bookings == nil {
+		bookings = []models.Booking{}
+	}
+
+	return bookings, nil
+}
+
+var ErrProviderBookingNotFound = errors.New(
+	"booking not found or not assigned to this provider",
+)
+
+func GetProviderBookingByID(
+	ctx context.Context,
+	db *mongo.Database,
+	providerID string,
+	bookingID string,
+) (*models.Booking, error) {
+
+	providerObjectID, err := bson.ObjectIDFromHex(providerID)
+	if err != nil {
+		return nil, errors.New("invalid provider ID")
+	}
+
+	bookingObjectID, err := bson.ObjectIDFromHex(bookingID)
+	if err != nil {
+		return nil, errors.New("invalid booking ID")
+	}
+
+	filter := bson.M{
+		"_id":        bookingObjectID,
+		"providerId": providerObjectID,
+	}
+
+	var booking models.Booking
+
+	err = db.Collection("bookings").
+		FindOne(ctx, filter).
+		Decode(&booking)
+
+	if errors.Is(err, mongo.ErrNoDocuments) {
+		return nil, ErrProviderBookingNotFound
+	}
+
+	if err != nil {
+		return nil, err
+	}
 
 	return &booking, nil
 }

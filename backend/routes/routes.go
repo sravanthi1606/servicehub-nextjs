@@ -42,15 +42,22 @@ func SetupRoutes(router *gin.Engine, mongoClient *mongo.Client) {
 	// =====================================================
 
 	customer := protected.Group("/customer")
-
 	customer.Use(middleware.RoleMiddleware("CUSTOMER"))
 
 	{
+		// Get available services
 		customer.GET("/services", func(c *gin.Context) {
 			controllers.GetCustomerServices(c, db)
 		})
+
+		// Create a booking
 		customer.POST("/bookings", func(c *gin.Context) {
 			controllers.CreateBooking(c, db)
+		})
+
+		// Get bookings for the logged-in customer
+		customer.GET("/bookings", func(c *gin.Context) {
+			controllers.GetCustomerBookings(c, db)
 		})
 	}
 
@@ -76,6 +83,21 @@ func SetupRoutes(router *gin.Engine, mongoClient *mongo.Client) {
 		provider.PATCH("/services/:id/status", func(c *gin.Context) {
 			controllers.UpdateServiceStatus(c, db)
 		})
+
+		// Get available bookings and bookings assigned to this provider.
+		provider.GET("/bookings", func(c *gin.Context) {
+			controllers.GetProviderBookings(c, db)
+		})
+
+		// Accept an available booking.
+		provider.PATCH("/bookings/:id/accept", func(c *gin.Context) {
+			controllers.AcceptProviderBooking(c, db)
+		})
+
+		provider.GET("/bookings/:id", func(c *gin.Context) {
+			controllers.GetProviderBookingByID(c, db)
+		})
+
 	}
 
 	// =====================================================
