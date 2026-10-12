@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useMemo, useState } from "react";
@@ -26,6 +25,13 @@ interface CustomerBooking {
   providerId?: string;
   serviceId: string;
   serviceName?: string;
+
+  provider?: {
+    name: string;
+    phone?: string;
+    email?: string;
+  };
+
   bookingDate: string;
   bookingTime: string;
   price: number;
@@ -40,6 +46,7 @@ type BookingStatus =
   | "ALL"
   | "OPEN"
   | "ACCEPTED"
+  | "IN_PROGRESS"
   | "COMPLETED"
   | "CANCELLED";
 
@@ -56,7 +63,7 @@ const formatDate = (value?: string) => {
   return new Date(
     Number(year),
     Number(month) - 1,
-    Number(day)
+    Number(day),
   ).toLocaleDateString("en-IN", {
     day: "2-digit",
     month: "short",
@@ -76,14 +83,11 @@ const formatTime = (value?: string) => {
 
   if (hours > 23 || minutes > 59) return value;
 
-  return new Date(2000, 0, 1, hours, minutes).toLocaleTimeString(
-    "en-IN",
-    {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: true,
-    }
-  );
+  return new Date(2000, 0, 1, hours, minutes).toLocaleTimeString("en-IN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
 };
 
 const formatPrice = (price: number) => {
@@ -116,6 +120,8 @@ const getStatusClass = (status?: string) => {
       return "customer-bookings__status--open";
     case "ACCEPTED":
       return "customer-bookings__status--accepted";
+    case "IN_PROGRESS":
+      return "customer-bookings__status--progress";
     case "COMPLETED":
       return "customer-bookings__status--completed";
     case "CANCELLED":
@@ -125,40 +131,39 @@ const getStatusClass = (status?: string) => {
   }
 };
 
-const formatAddress = (
-  address?: BookingAddress | string
-): string => {
+const formatAddress = (address?: BookingAddress | string): string => {
   if (!address) return "Address not available";
 
   if (typeof address === "string") return address;
 
-  return [
-    address.flatNumber,
-    address.buildingNumber,
-    address.buildingName,
-    address.block,
-    address.street,
-    address.area,
-    address.landmark,
-    address.city,
-    address.district,
-    address.state,
-    address.pincode,
-    address.country,
-  ]
-    .filter(Boolean)
-    .join(", ") || "Address not available";
+  return (
+    [
+      address.flatNumber,
+      address.buildingNumber,
+      address.buildingName,
+      address.block,
+      address.street,
+      address.area,
+      address.landmark,
+      address.city,
+      address.district,
+      address.state,
+      address.pincode,
+      address.country,
+    ]
+      .filter(Boolean)
+      .join(", ") || "Address not available"
+  );
 };
 
 export default function CustomerBookingsPage() {
-  const { data, isLoading, isError, refetch } =
-    useGetCustomerBookingsQuery();
+  const { data, isLoading, isError, refetch } = useGetCustomerBookingsQuery();
 
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] =
-    useState<BookingStatus>("ALL");
-  const [selectedBookingId, setSelectedBookingId] =
-    useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<BookingStatus>("ALL");
+  const [selectedBookingId, setSelectedBookingId] = useState<string | null>(
+    null,
+  );
 
   const bookings = (data?.data ?? []) as CustomerBooking[];
 
@@ -166,16 +171,16 @@ export default function CustomerBookingsPage() {
     () => ({
       total: bookings.length,
       open: bookings.filter(
-        (booking) => booking.status?.toUpperCase() === "OPEN"
+        (booking) => booking.status?.toUpperCase() === "OPEN",
       ).length,
       accepted: bookings.filter(
-        (booking) => booking.status?.toUpperCase() === "ACCEPTED"
+        (booking) => booking.status?.toUpperCase() === "ACCEPTED",
       ).length,
       completed: bookings.filter(
-        (booking) => booking.status?.toUpperCase() === "COMPLETED"
+        (booking) => booking.status?.toUpperCase() === "COMPLETED",
       ).length,
     }),
-    [bookings]
+    [bookings],
   );
 
   const filteredBookings = useMemo(() => {
@@ -184,8 +189,7 @@ export default function CustomerBookingsPage() {
     return bookings.filter((booking) => {
       const status = booking.status?.toUpperCase();
 
-      const matchesStatus =
-        statusFilter === "ALL" || status === statusFilter;
+      const matchesStatus = statusFilter === "ALL" || status === statusFilter;
 
       const matchesSearch =
         !searchText ||
@@ -198,30 +202,18 @@ export default function CustomerBookingsPage() {
   }, [bookings, search, statusFilter]);
 
   const selectedBooking = bookings.find(
-    (booking) => booking.id === selectedBookingId
+    (booking) => booking.id === selectedBookingId,
   );
 
   return (
     <div className="customer-bookings">
       <div className="customer-bookings__header">
         <div>
-          <h1 className="customer-bookings__title">
-            My Bookings
-          </h1>
+          <h1 className="customer-bookings__title">My Bookings</h1>
           <p className="customer-bookings__subtitle">
             View and track all your service bookings.
           </p>
         </div>
-
-        <button
-          type="button"
-          className="btn btn-outline-primary customer-bookings__refresh"
-          onClick={() => refetch()}
-          disabled={isLoading}
-        >
-          <i className="bi bi-arrow-clockwise me-2" />
-          Refresh
-        </button>
       </div>
 
       {/* Summary cards */}
@@ -312,6 +304,7 @@ export default function CustomerBookingsPage() {
               <option value="ALL">All Statuses</option>
               <option value="OPEN">Open</option>
               <option value="ACCEPTED">Accepted</option>
+              <option value="IN_PROGRESS">In Progress</option>
               <option value="COMPLETED">Completed</option>
               <option value="CANCELLED">Cancelled</option>
             </select>
@@ -320,13 +313,8 @@ export default function CustomerBookingsPage() {
 
         {isLoading ? (
           <div className="customer-bookings__state">
-            <div
-              className="spinner-border text-primary"
-              role="status"
-            >
-              <span className="visually-hidden">
-                Loading bookings...
-              </span>
+            <div className="spinner-border text-primary" role="status">
+              <span className="visually-hidden">Loading bookings...</span>
             </div>
             <p>Loading your bookings...</p>
           </div>
@@ -352,8 +340,7 @@ export default function CustomerBookingsPage() {
             </div>
             <h3>No bookings yet</h3>
             <p>
-              Your service bookings will appear here after you
-              book a service.
+              Your service bookings will appear here after you book a service.
             </p>
           </div>
         ) : filteredBookings.length === 0 ? (
@@ -415,11 +402,11 @@ export default function CustomerBookingsPage() {
                     <td>
                       <span
                         className={`customer-bookings__status ${getStatusClass(
-                          booking.status
+                          booking.status,
                         )}`}
                       >
                         <span className="customer-bookings__status-dot" />
-                        {booking.status || "UNKNOWN"}
+                        {booking.status?.replaceAll("_", " ") || "UNKNOWN"}
                       </span>
                     </td>
 
@@ -431,7 +418,7 @@ export default function CustomerBookingsPage() {
                           setSelectedBookingId(
                             selectedBookingId === booking.id
                               ? null
-                              : booking.id
+                              : booking.id,
                           )
                         }
                         aria-expanded={selectedBookingId === booking.id}
@@ -480,16 +467,12 @@ export default function CustomerBookingsPage() {
             <div className="customer-bookings__details-grid">
               <div>
                 <span>Booking Date</span>
-                <strong>
-                  {formatDate(selectedBooking.bookingDate)}
-                </strong>
+                <strong>{formatDate(selectedBooking.bookingDate)}</strong>
               </div>
 
               <div>
                 <span>Booking Time</span>
-                <strong>
-                  {formatTime(selectedBooking.bookingTime)}
-                </strong>
+                <strong>{formatTime(selectedBooking.bookingTime)}</strong>
               </div>
 
               <div>
@@ -504,9 +487,7 @@ export default function CustomerBookingsPage() {
 
               <div className="customer-bookings__details-address">
                 <span>Service Address</span>
-                <strong>
-                  {formatAddress(selectedBooking.address)}
-                </strong>
+                <strong>{formatAddress(selectedBooking.address)}</strong>
               </div>
 
               <div className="customer-bookings__details-notes">
@@ -515,6 +496,24 @@ export default function CustomerBookingsPage() {
                   {selectedBooking.notes || "No additional notes"}
                 </strong>
               </div>
+
+              <div className="booking-details__section">
+                <h4>Service</h4>
+                <p>{selectedBooking.serviceName || "Service name unavailable"}</p>
+              </div>
+
+              {selectedBooking.provider && (
+                <div className="booking-details__section">
+                  <h4>Service Provider</h4>
+                  <p>Name: {selectedBooking.provider.name}</p>
+                  {selectedBooking.provider.phone && (
+                    <p>Phone: {selectedBooking.provider.phone}</p>
+                  )}
+                  {selectedBooking.provider.email && (
+                    <p>Email: {selectedBooking.provider.email}</p>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         )}

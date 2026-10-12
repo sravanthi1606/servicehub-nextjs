@@ -98,6 +98,10 @@ func SetupRoutes(router *gin.Engine, mongoClient *mongo.Client) {
 			controllers.GetProviderBookingByID(c, db)
 		})
 
+		provider.PATCH("/bookings/:id/status", func(c *gin.Context) {
+			controllers.UpdateProviderBookingStatus(c, db)
+		})
+
 	}
 
 	// =====================================================

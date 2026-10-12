@@ -1,4 +1,3 @@
-
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import type { RootState } from "../store";
 
@@ -65,7 +64,6 @@ interface CustomerBookingsResponse {
   message?: string;
 }
 
-
 export interface ProviderBookingAddress {
   country: string;
   state: string;
@@ -108,7 +106,6 @@ export interface AcceptBookingResponse {
   data: ProviderBooking;
 }
 
-
 const baseQuery = fetchBaseQuery({
   baseUrl: process.env.NEXT_PUBLIC_API_BASE_URL,
 
@@ -128,7 +125,12 @@ export const serviceApi = createApi({
 
   baseQuery,
 
-  tagTypes: ["ProviderServices", "CustomerServices", "CustomerBookings", "ProviderBookings"],
+  tagTypes: [
+    "ProviderServices",
+    "CustomerServices",
+    "CustomerBookings",
+    "ProviderBookings",
+  ],
 
   endpoints: (builder) => ({
     // Create Service
@@ -179,7 +181,10 @@ export const serviceApi = createApi({
       providesTags: ["CustomerServices"],
     }),
 
-    createBooking: builder.mutation<CreateBookingResponse, CreateBookingRequest>({
+    createBooking: builder.mutation<
+      CreateBookingResponse,
+      CreateBookingRequest
+    >({
       query: (bookingData) => ({
         url: "/customer/bookings",
         method: "POST",
@@ -197,7 +202,6 @@ export const serviceApi = createApi({
       providesTags: ["CustomerBookings"],
     }),
 
-
     getProviderBookings: builder.query<ProviderBookingsResponse, void>({
       query: () => ({
         url: "/provider/bookings",
@@ -206,17 +210,13 @@ export const serviceApi = createApi({
       providesTags: ["ProviderBookings"],
     }),
 
-    acceptProviderBooking: builder.mutation<
-      AcceptBookingResponse,
-      string
-    >({
+    acceptProviderBooking: builder.mutation<AcceptBookingResponse, string>({
       query: (bookingId) => ({
         url: `/provider/bookings/${bookingId}/accept`,
         method: "PATCH",
       }),
       invalidatesTags: ["ProviderBookings"],
     }),
-
 
     getProviderBookingById: builder.query<
       { success: boolean; data: ProviderBooking; message?: string },
@@ -228,7 +228,21 @@ export const serviceApi = createApi({
       }),
     }),
 
-
+    updateProviderBookingStatus: builder.mutation<
+      {
+        success: boolean;
+        message: string;
+        data: ProviderBooking;
+      },
+      { bookingId: string; status: string }
+    >({
+      query: ({ bookingId, status }) => ({
+        url: `/provider/bookings/${bookingId}/status`,
+        method: "PATCH",
+        body: { status },
+      }),
+      invalidatesTags: ["ProviderBookings"],
+    }),
   }),
 });
 
@@ -243,4 +257,5 @@ export const {
   useGetProviderBookingsQuery,
   useAcceptProviderBookingMutation,
   useGetProviderBookingByIdQuery,
+  useUpdateProviderBookingStatusMutation,
 } = serviceApi;

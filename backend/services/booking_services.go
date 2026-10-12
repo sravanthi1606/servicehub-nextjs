@@ -3,7 +3,6 @@ package services
 import (
 	"context"
 	"errors"
-	"fmt"
 	"strings"
 	"time"
 
@@ -13,6 +12,18 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
+
+type BookingProviderDetails struct {
+	Name  string `bson:"name" json:"name"`
+	Phone string `bson:"phone" json:"phone"`
+	Email string `bson:"email" json:"email"`
+}
+
+type CustomerBookingWithService struct {
+	models.Booking `bson:",inline"`
+	ServiceName    string                  `bson:"serviceName" json:"serviceName"`
+	Provider       *BookingProviderDetails `bson:"provider,omitempty" json:"provider,omitempty"`
+}
 
 func CreateBooking(
 	ctx context.Context,
@@ -127,42 +138,95 @@ func GetCustomerBookings(
 	ctx context.Context,
 	db *mongo.Database,
 	customerID string,
-) ([]models.Booking, error) {
-
-	var bookings []models.Booking
-
-	collection := db.Collection("bookings")
+) ([]CustomerBookingWithService, error) {
 
 	customerObjectID, err := bson.ObjectIDFromHex(customerID)
 	if err != nil {
-		return nil, err
+		return nil, errors.New("invalid customer ID")
 	}
 
-	filter := bson.M{
-		"customerId": customerObjectID,
-	}
+	pipeline := mongo.Pipeline{
+		// Find bookings belonging to this customer.
+		bson.D{{Key: "$match", Value: bson.D{
+			{Key: "customerId", Value: customerObjectID},
+		}}},
 
-	// Add logs here, before collection.Find()
-	fmt.Println("Query customer ID:", customerID)
-	fmt.Printf("Query filter: %#v\n", filter)
+		// Join the service document.
+		bson.D{{Key: "$lookup", Value: bson.D{
+			{Key: "from", Value: "services"},
+			{Key: "localField", Value: "serviceId"},
+			{Key: "foreignField", Value: "_id"},
+			{Key: "as", Value: "serviceDetails"},
+		}}},
 
-	opts := options.Find().
-		SetSort(bson.D{
+		bson.D{{Key: "$unwind", Value: bson.D{
+			{Key: "path", Value: "$serviceDetails"},
+			{Key: "preserveNullAndEmptyArrays", Value: true},
+		}}},
+
+		// Add the service name.
+		bson.D{{Key: "$addFields", Value: bson.D{
+			{Key: "serviceName", Value: bson.D{
+				{Key: "$ifNull", Value: bson.A{
+					"$serviceDetails.name",
+					"",
+				}},
+			}},
+		}}},
+
+		// Join the assigned provider from users.
+		bson.D{{Key: "$lookup", Value: bson.D{
+			{Key: "from", Value: "users"},
+			{Key: "localField", Value: "providerId"},
+			{Key: "foreignField", Value: "_id"},
+			{Key: "as", Value: "providerDetails"},
+		}}},
+
+		bson.D{{Key: "$unwind", Value: bson.D{
+			{Key: "path", Value: "$providerDetails"},
+			{Key: "preserveNullAndEmptyArrays", Value: true},
+		}}},
+
+		// Include only public provider contact fields.
+		bson.D{{Key: "$addFields", Value: bson.D{
+			{Key: "provider", Value: bson.D{
+				{Key: "$cond", Value: bson.A{
+					bson.D{{Key: "$ifNull", Value: bson.A{
+						"$providerDetails._id",
+						false,
+					}}},
+					bson.D{
+						{Key: "name", Value: "$providerDetails.name"},
+						{Key: "phone", Value: "$providerDetails.phone"},
+						{Key: "email", Value: "$providerDetails.email"},
+					},
+					nil,
+				}},
+			}},
+		}}},
+
+		// Remove the joined documents from the response.
+		bson.D{{Key: "$project", Value: bson.D{
+			{Key: "serviceDetails", Value: 0},
+			{Key: "providerDetails", Value: 0},
+		}}},
+
+		// Latest bookings first.
+		bson.D{{Key: "$sort", Value: bson.D{
 			{Key: "createdAt", Value: -1},
-		})
+		}}},
+	}
 
-	cursor, err := collection.Find(ctx, filter, opts)
+	cursor, err := db.Collection("bookings").Aggregate(ctx, pipeline)
 	if err != nil {
 		return nil, err
 	}
 	defer cursor.Close(ctx)
 
+	bookings := []CustomerBookingWithService{}
+
 	if err := cursor.All(ctx, &bookings); err != nil {
 		return nil, err
-	}
-
-	if bookings == nil {
-		bookings = []models.Booking{}
 	}
 
 	return bookings, nil
@@ -351,6 +415,70 @@ func GetProviderBookingByID(
 
 	if errors.Is(err, mongo.ErrNoDocuments) {
 		return nil, ErrProviderBookingNotFound
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &booking, nil
+}
+
+func UpdateProviderBookingStatus(
+	ctx context.Context,
+	db *mongo.Database,
+	providerID string,
+	bookingID string,
+	newStatus string,
+) (*models.Booking, error) {
+
+	providerObjectID, err := bson.ObjectIDFromHex(providerID)
+	if err != nil {
+		return nil, errors.New("invalid provider ID")
+	}
+
+	bookingObjectID, err := bson.ObjectIDFromHex(bookingID)
+	if err != nil {
+		return nil, errors.New("invalid booking ID")
+	}
+
+	var allowedPreviousStatus string
+
+	switch newStatus {
+	case "IN_PROGRESS":
+		allowedPreviousStatus = "ACCEPTED"
+	case "COMPLETED":
+		allowedPreviousStatus = "IN_PROGRESS"
+	default:
+		return nil, errors.New("invalid booking status transition")
+	}
+
+	filter := bson.M{
+		"_id":        bookingObjectID,
+		"providerId": providerObjectID,
+		"status":     allowedPreviousStatus,
+	}
+
+	update := bson.M{
+		"$set": bson.M{
+			"status":    newStatus,
+			"updatedAt": time.Now(),
+		},
+	}
+
+	opts := options.FindOneAndUpdate().
+		SetReturnDocument(options.After)
+
+	var booking models.Booking
+
+	err = db.Collection("bookings").
+		FindOneAndUpdate(ctx, filter, update, opts).
+		Decode(&booking)
+
+	if errors.Is(err, mongo.ErrNoDocuments) {
+		return nil, errors.New(
+			"booking not found, not assigned to you, or status transition not allowed",
+		)
 	}
 
 	if err != nil {

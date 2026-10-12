@@ -282,3 +282,59 @@ func GetProviderBookingByID(c *gin.Context, db *mongo.Database) {
 		"data":    booking,
 	})
 }
+
+func UpdateProviderBookingStatus(c *gin.Context, db *mongo.Database) {
+	providerIDValue, exists := c.Get("userId")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"success": false,
+			"message": "Provider ID not found in token",
+		})
+		return
+	}
+
+	providerID, ok := providerIDValue.(string)
+	if !ok || providerID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"success": false,
+			"message": "Invalid provider ID",
+		})
+		return
+	}
+
+	bookingID := c.Param("id")
+
+	var req struct {
+		Status string `json:"status" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"message": "A valid status is required",
+		})
+		return
+	}
+
+	booking, err := services.UpdateProviderBookingStatus(
+		c.Request.Context(),
+		db,
+		providerID,
+		bookingID,
+		req.Status,
+	)
+
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"message": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "Booking status updated successfully",
+		"data":    booking,
+	})
+}
