@@ -59,6 +59,11 @@ func SetupRoutes(router *gin.Engine, mongoClient *mongo.Client) {
 		customer.GET("/bookings", func(c *gin.Context) {
 			controllers.GetCustomerBookings(c, db)
 		})
+
+		// Cancel a booking belonging to the logged-in customer
+		customer.DELETE("/bookings/:id", func(c *gin.Context) {
+			controllers.CancelCustomerBooking(c, db)
+		})
 	}
 
 	// =====================================================

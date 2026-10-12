@@ -487,3 +487,60 @@ func UpdateProviderBookingStatus(
 
 	return &booking, nil
 }
+
+func CancelCustomerBooking(
+	ctx context.Context,
+	db *mongo.Database,
+	customerID string,
+	bookingID string,
+) (*models.Booking, error) {
+
+	// 1. Validate customer ID
+	customerObjectID, err := bson.ObjectIDFromHex(customerID)
+	if err != nil {
+		return nil, errors.New("invalid customer ID")
+	}
+
+	// 2. Validate booking ID
+	bookingObjectID, err := bson.ObjectIDFromHex(bookingID)
+	if err != nil {
+		return nil, errors.New("invalid booking ID")
+	}
+
+	// 3. Cancel only this customer's OPEN or ACCEPTED booking.
+	filter := bson.M{
+		"_id":        bookingObjectID,
+		"customerId": customerObjectID,
+		"status": bson.M{
+			"$in": []string{"OPEN", "ACCEPTED"},
+		},
+	}
+
+	update := bson.M{
+		"$set": bson.M{
+			"status":    "CANCELLED",
+			"updatedAt": time.Now(),
+		},
+	}
+
+	opts := options.FindOneAndUpdate().
+		SetReturnDocument(options.After)
+
+	var booking models.Booking
+
+	err = db.Collection("bookings").
+		FindOneAndUpdate(ctx, filter, update, opts).
+		Decode(&booking)
+
+	if errors.Is(err, mongo.ErrNoDocuments) {
+		return nil, errors.New(
+			"booking not found, not owned by you, or cannot be cancelled",
+		)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &booking, nil
+}

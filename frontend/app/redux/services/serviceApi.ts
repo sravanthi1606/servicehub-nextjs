@@ -106,6 +106,12 @@ export interface AcceptBookingResponse {
   data: ProviderBooking;
 }
 
+export interface CancelBookingResponse {
+  success: boolean;
+  message: string;
+  data: CustomerBookingResponse;
+}
+
 const baseQuery = fetchBaseQuery({
   baseUrl: process.env.NEXT_PUBLIC_API_BASE_URL,
 
@@ -243,6 +249,15 @@ export const serviceApi = createApi({
       }),
       invalidatesTags: ["ProviderBookings"],
     }),
+
+    // Cancel Customer Booking
+    cancelCustomerBooking: builder.mutation<CancelBookingResponse, string>({
+      query: (bookingId) => ({
+        url: `/customer/bookings/${bookingId}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["CustomerBookings", "ProviderBookings"],
+    }),
   }),
 });
 
@@ -258,4 +273,5 @@ export const {
   useAcceptProviderBookingMutation,
   useGetProviderBookingByIdQuery,
   useUpdateProviderBookingStatusMutation,
+  useCancelCustomerBookingMutation,
 } = serviceApi;

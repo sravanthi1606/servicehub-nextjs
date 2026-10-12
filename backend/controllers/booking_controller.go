@@ -338,3 +338,57 @@ func UpdateProviderBookingStatus(c *gin.Context, db *mongo.Database) {
 		"data":    booking,
 	})
 }
+
+func CancelCustomerBooking(c *gin.Context, db *mongo.Database) {
+	// 1. Get the logged-in customer's ID from the JWT middleware
+	customerID, exists := c.Get("userId")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"success": false,
+			"message": "User not authenticated",
+		})
+		return
+	}
+
+	customerIDStr, ok := customerID.(string)
+	if !ok || customerIDStr == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"success": false,
+			"message": "Invalid customer ID",
+		})
+		return
+	}
+
+	// 2. Get the booking ID from the URL
+	bookingID := c.Param("id")
+
+	// 3. Call the service layer
+	booking, err := services.CancelCustomerBooking(
+		c.Request.Context(),
+		db,
+		customerIDStr,
+		bookingID,
+	)
+
+	if err != nil {
+		statusCode := http.StatusConflict
+
+		if err.Error() == "invalid customer ID" ||
+			err.Error() == "invalid booking ID" {
+			statusCode = http.StatusBadRequest
+		}
+
+		c.JSON(statusCode, gin.H{
+			"success": false,
+			"message": err.Error(),
+		})
+		return
+	}
+
+	// 4. Return the updated booking
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "Booking cancelled successfully",
+		"data":    booking,
+	})
+}

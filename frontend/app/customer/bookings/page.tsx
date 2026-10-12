@@ -1,7 +1,11 @@
+
 "use client";
 
 import { useMemo, useState } from "react";
-import { useGetCustomerBookingsQuery } from "@/app/redux/services/serviceApi";
+import {
+  useGetCustomerBookingsQuery,
+  useCancelCustomerBookingMutation,
+} from "@/app/redux/services/serviceApi";
 import "@/styles/customer-bookings.scss";
 
 interface BookingAddress {
@@ -22,16 +26,14 @@ interface BookingAddress {
 interface CustomerBooking {
   id: string;
   customerId: string;
-  providerId?: string;
+  providerId?: string | null;
   serviceId: string;
   serviceName?: string;
-
   provider?: {
     name: string;
     phone?: string;
     email?: string;
   };
-
   bookingDate: string;
   bookingTime: string;
   price: number;
@@ -53,8 +55,7 @@ type BookingStatus =
 const formatDate = (value?: string) => {
   if (!value) return "—";
 
-  const datePart = value.slice(0, 10);
-  const match = datePart.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  const match = value.slice(0, 10).match(/^(\d{4})-(\d{2})-(\d{2})$/);
 
   if (!match) return value;
 
@@ -75,7 +76,6 @@ const formatTime = (value?: string) => {
   if (!value) return "—";
 
   const match = value.match(/^(\d{1,2}):(\d{2})/);
-
   if (!match) return value;
 
   const hours = Number(match[1]);
@@ -90,28 +90,24 @@ const formatTime = (value?: string) => {
   });
 };
 
-const formatPrice = (price: number) => {
-  return new Intl.NumberFormat("en-IN", {
+const formatPrice = (price: number) =>
+  new Intl.NumberFormat("en-IN", {
     style: "currency",
     currency: "INR",
     maximumFractionDigits: 2,
   }).format(price ?? 0);
-};
 
 const getBookingId = (booking: CustomerBooking) => {
   const id = booking.id || "";
-
   return id.length > 8 ? id.slice(-6).toUpperCase() : id.toUpperCase();
 };
 
 const getServiceName = (booking: CustomerBooking) => {
   if (booking.serviceName) return booking.serviceName;
 
-  if (booking.serviceId) {
-    return `Service #${booking.serviceId.slice(-6)}`;
-  }
-
-  return "Service";
+  return booking.serviceId
+    ? `Service #${booking.serviceId.slice(-6)}`
+    : "Service";
 };
 
 const getStatusClass = (status?: string) => {
@@ -131,9 +127,8 @@ const getStatusClass = (status?: string) => {
   }
 };
 
-const formatAddress = (address?: BookingAddress | string): string => {
+const formatAddress = (address?: BookingAddress | string) => {
   if (!address) return "Address not available";
-
   if (typeof address === "string") return address;
 
   return (
@@ -157,13 +152,21 @@ const formatAddress = (address?: BookingAddress | string): string => {
 };
 
 export default function CustomerBookingsPage() {
-  const { data, isLoading, isError, refetch } = useGetCustomerBookingsQuery();
+  const { data, isLoading, isError, refetch } =
+    useGetCustomerBookingsQuery();
+
+  const [cancelCustomerBooking, { isLoading: isCancelling }] =
+    useCancelCustomerBookingMutation();
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<BookingStatus>("ALL");
-  const [selectedBookingId, setSelectedBookingId] = useState<string | null>(
-    null,
-  );
+  const [selectedBooking, setSelectedBooking] =
+    useState<CustomerBooking | null>(null);
+
+  const [cancelFeedback, setCancelFeedback] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
 
   const bookings = (data?.data ?? []) as CustomerBooking[];
 
@@ -189,7 +192,8 @@ export default function CustomerBookingsPage() {
     return bookings.filter((booking) => {
       const status = booking.status?.toUpperCase();
 
-      const matchesStatus = statusFilter === "ALL" || status === statusFilter;
+      const matchesStatus =
+        statusFilter === "ALL" || status === statusFilter;
 
       const matchesSearch =
         !searchText ||
@@ -201,9 +205,42 @@ export default function CustomerBookingsPage() {
     });
   }, [bookings, search, statusFilter]);
 
-  const selectedBooking = bookings.find(
-    (booking) => booking.id === selectedBookingId,
-  );
+  const handleCancelBooking = async (booking: CustomerBooking) => {
+    const status = booking.status?.toUpperCase();
+
+    if (status !== "OPEN" && status !== "ACCEPTED") return;
+
+    const confirmed = window.confirm(
+      `Are you sure you want to cancel booking #${getBookingId(booking)}?`,
+    );
+
+    if (!confirmed) return;
+
+    setCancelFeedback(null);
+
+    try {
+      const response = await cancelCustomerBooking(booking.id).unwrap();
+
+      setCancelFeedback({
+        type: "success",
+        message: response.message || "Booking cancelled successfully.",
+      });
+
+      // Close the modal if the cancelled booking is currently open.
+      setSelectedBooking(null);
+    } catch (error) {
+      const apiError = error as {
+        data?: { message?: string };
+      };
+
+      setCancelFeedback({
+        type: "error",
+        message:
+          apiError.data?.message ||
+          "Unable to cancel this booking. Please try again.",
+      });
+    }
+  };
 
   return (
     <div className="customer-bookings">
@@ -259,7 +296,7 @@ export default function CustomerBookingsPage() {
         </div>
       </div>
 
-      {/* Bookings table */}
+      {/* Booking history */}
       <div className="customer-bookings__panel">
         <div className="customer-bookings__toolbar">
           <div>
@@ -282,6 +319,7 @@ export default function CustomerBookingsPage() {
                 placeholder="Search bookings..."
                 aria-label="Search bookings"
               />
+
               {search && (
                 <button
                   type="button"
@@ -310,6 +348,19 @@ export default function CustomerBookingsPage() {
             </select>
           </div>
         </div>
+
+        {cancelFeedback && (
+          <div
+            className={`alert ${
+              cancelFeedback.type === "success"
+                ? "alert-success"
+                : "alert-danger"
+            } m-3`}
+            role="status"
+          >
+            {cancelFeedback.message}
+          </div>
+        )}
 
         {isLoading ? (
           <div className="customer-bookings__state">
@@ -372,152 +423,225 @@ export default function CustomerBookingsPage() {
                   <th scope="col">Time</th>
                   <th scope="col">Price</th>
                   <th scope="col">Status</th>
-                  <th scope="col">Action</th>
+                  <th scope="col">Actions</th>
                 </tr>
               </thead>
 
               <tbody>
-                {filteredBookings.map((booking) => (
-                  <tr key={booking.id}>
-                    <td>
-                      <span className="customer-bookings__id">
-                        #{getBookingId(booking)}
-                      </span>
-                    </td>
+                {filteredBookings.map((booking) => {
+                  const canCancel = ["OPEN", "ACCEPTED"].includes(
+                    booking.status?.toUpperCase(),
+                  );
 
-                    <td>
-                      <span className="customer-bookings__service">
-                        {getServiceName(booking)}
-                      </span>
-                    </td>
+                  return (
+                    <tr key={booking.id}>
+                      <td>
+                        <button
+                          type="button"
+                          className="customer-bookings__id customer-bookings__id-button"
+                          onClick={() => setSelectedBooking(booking)}
+                          aria-label={`View booking ${getBookingId(booking)}`}
+                        >
+                          #{getBookingId(booking)}
+                        </button>
+                      </td>
 
-                    <td>{formatDate(booking.bookingDate)}</td>
+                      <td>
+                        <span className="customer-bookings__service">
+                          {getServiceName(booking)}
+                        </span>
+                      </td>
 
-                    <td>{formatTime(booking.bookingTime)}</td>
+                      <td>{formatDate(booking.bookingDate)}</td>
+                      <td>{formatTime(booking.bookingTime)}</td>
 
-                    <td className="customer-bookings__price">
-                      {formatPrice(booking.price)}
-                    </td>
+                      <td className="customer-bookings__price">
+                        {formatPrice(booking.price)}
+                      </td>
 
-                    <td>
-                      <span
-                        className={`customer-bookings__status ${getStatusClass(
-                          booking.status,
-                        )}`}
-                      >
-                        <span className="customer-bookings__status-dot" />
-                        {booking.status?.replaceAll("_", " ") || "UNKNOWN"}
-                      </span>
-                    </td>
+                      <td>
+                        <span
+                          className={`customer-bookings__status ${getStatusClass(
+                            booking.status,
+                          )}`}
+                        >
+                          <span className="customer-bookings__status-dot" />
+                          {booking.status?.replaceAll("_", " ") || "UNKNOWN"}
+                        </span>
+                      </td>
 
-                    <td>
-                      <button
-                        type="button"
-                        className="customer-bookings__view-button"
-                        onClick={() =>
-                          setSelectedBookingId(
-                            selectedBookingId === booking.id
-                              ? null
-                              : booking.id,
-                          )
-                        }
-                        aria-expanded={selectedBookingId === booking.id}
-                      >
-                        {selectedBookingId === booking.id
-                          ? "Hide"
-                          : "View Details"}
-                        <i
-                          className={`bi ${
-                            selectedBookingId === booking.id
-                              ? "bi-chevron-up"
-                              : "bi-chevron-right"
-                          }`}
-                        />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                      <td>
+                        {canCancel && (
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-outline-danger"
+                            disabled={isCancelling}
+                            onClick={() => handleCancelBooking(booking)}
+                          >
+                            {isCancelling ? (
+                              <>
+                                <span
+                                  className="spinner-border spinner-border-sm me-1"
+                                  aria-hidden="true"
+                                />
+                                Cancelling...
+                              </>
+                            ) : (
+                              <>
+                                <i className="bi bi-x-circle me-1" />
+                                Cancel
+                              </>
+                            )}
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         )}
+      </div>
 
-        {/* Selected booking details */}
-        {selectedBooking && (
-          <div className="customer-bookings__details">
-            <div className="customer-bookings__details-header">
+      {/* Booking details modal */}
+      {selectedBooking && (
+        <div
+          className="customer-bookings__modal-backdrop"
+          onClick={() => setSelectedBooking(null)}
+        >
+          <div
+            className="customer-bookings__modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="booking-modal-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="customer-bookings__modal-header">
               <div>
                 <span className="customer-bookings__details-label">
                   BOOKING DETAILS
                 </span>
-                <h3>{getServiceName(selectedBooking)}</h3>
-                <p>Booking #{getBookingId(selectedBooking)}</p>
+                <h3 id="booking-modal-title">
+                  Booking #{getBookingId(selectedBooking)}
+                </h3>
+                <p>{getServiceName(selectedBooking)}</p>
               </div>
 
               <button
                 type="button"
                 className="customer-bookings__close-button"
-                onClick={() => setSelectedBookingId(null)}
+                onClick={() => setSelectedBooking(null)}
                 aria-label="Close booking details"
               >
                 <i className="bi bi-x-lg" />
               </button>
             </div>
 
-            <div className="customer-bookings__details-grid">
-              <div>
-                <span>Booking Date</span>
-                <strong>{formatDate(selectedBooking.bookingDate)}</strong>
-              </div>
+            <div className="customer-bookings__modal-body">
+              <div className="customer-bookings__details-grid">
+                <div>
+                  <span>Service</span>
+                  <strong>{getServiceName(selectedBooking)}</strong>
+                </div>
 
-              <div>
-                <span>Booking Time</span>
-                <strong>{formatTime(selectedBooking.bookingTime)}</strong>
-              </div>
+                <div>
+                  <span>Booking ID</span>
+                  <strong>#{getBookingId(selectedBooking)}</strong>
+                </div>
 
-              <div>
-                <span>Price</span>
-                <strong>{formatPrice(selectedBooking.price)}</strong>
-              </div>
+                <div>
+                  <span>Booking Date</span>
+                  <strong>{formatDate(selectedBooking.bookingDate)}</strong>
+                </div>
 
-              <div>
-                <span>Status</span>
-                <strong>{selectedBooking.status}</strong>
-              </div>
+                <div>
+                  <span>Booking Time</span>
+                  <strong>{formatTime(selectedBooking.bookingTime)}</strong>
+                </div>
 
-              <div className="customer-bookings__details-address">
-                <span>Service Address</span>
-                <strong>{formatAddress(selectedBooking.address)}</strong>
-              </div>
+                <div>
+                  <span>Price</span>
+                  <strong>{formatPrice(selectedBooking.price)}</strong>
+                </div>
 
-              <div className="customer-bookings__details-notes">
-                <span>Notes</span>
-                <strong>
-                  {selectedBooking.notes || "No additional notes"}
-                </strong>
-              </div>
+                <div>
+                  <span>Status</span>
+                  <strong>
+                    <span
+                      className={`customer-bookings__status ${getStatusClass(
+                        selectedBooking.status,
+                      )}`}
+                    >
+                      <span className="customer-bookings__status-dot" />
+                      {selectedBooking.status?.replaceAll("_", " ")}
+                    </span>
+                  </strong>
+                </div>
 
-              <div className="booking-details__section">
-                <h4>Service</h4>
-                <p>{selectedBooking.serviceName || "Service name unavailable"}</p>
+                <div className="customer-bookings__details-full">
+                  <span>Service Address</span>
+                  <strong>{formatAddress(selectedBooking.address)}</strong>
+                </div>
+
+                <div className="customer-bookings__details-full">
+                  <span>Notes</span>
+                  <strong>
+                    {selectedBooking.notes || "No additional notes"}
+                  </strong>
+                </div>
               </div>
 
               {selectedBooking.provider && (
-                <div className="booking-details__section">
+                <div className="customer-bookings__provider">
                   <h4>Service Provider</h4>
-                  <p>Name: {selectedBooking.provider.name}</p>
+                  <p>
+                    <i className="bi bi-person me-2" />
+                    {selectedBooking.provider.name}
+                  </p>
+
                   {selectedBooking.provider.phone && (
-                    <p>Phone: {selectedBooking.provider.phone}</p>
+                    <p>
+                      <i className="bi bi-telephone me-2" />
+                      {selectedBooking.provider.phone}
+                    </p>
                   )}
+
                   {selectedBooking.provider.email && (
-                    <p>Email: {selectedBooking.provider.email}</p>
+                    <p>
+                      <i className="bi bi-envelope me-2" />
+                      {selectedBooking.provider.email}
+                    </p>
                   )}
                 </div>
               )}
             </div>
+
+            <div className="customer-bookings__modal-footer">
+              <button
+                type="button"
+                className="btn btn-outline-secondary"
+                onClick={() => setSelectedBooking(null)}
+              >
+                Close
+              </button>
+
+              {["OPEN", "ACCEPTED"].includes(
+                selectedBooking.status?.toUpperCase(),
+              ) && (
+                <button
+                  type="button"
+                  className="btn btn-danger"
+                  disabled={isCancelling}
+                  onClick={() => handleCancelBooking(selectedBooking)}
+                >
+                  {isCancelling ? "Cancelling..." : "Cancel Booking"}
+                </button>
+              )}
+            </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

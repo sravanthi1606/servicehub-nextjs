@@ -170,6 +170,7 @@
       color: #667085;
       background: transparent;
       border: 0;
+      cursor: pointer;
     }
 
     &:focus-within {
@@ -219,9 +220,32 @@
     }
   }
 
+  // Clickable booking ID
+
   &__id {
     color: #4361ee;
     font-weight: 600;
+  }
+
+  &__id-button {
+    padding: 0;
+    color: #4361ee;
+    font: inherit;
+    font-weight: 600;
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+
+    &:hover {
+      color: #3046b5;
+      text-decoration: underline;
+    }
+
+    &:focus-visible {
+      outline: 2px solid #4361ee;
+      outline-offset: 3px;
+      border-radius: 2px;
+    }
   }
 
   &__service {
@@ -260,6 +284,12 @@
       border-color: #b2ddff;
     }
 
+    &--progress {
+      color: #6941c6;
+      background: #f4f3ff;
+      border-color: #d9d6fe;
+    }
+
     &--completed {
       color: #027a48;
       background: #ecfdf3;
@@ -287,26 +317,14 @@
     border-radius: 50%;
   }
 
-  &__view-button {
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    padding: 6px 0;
-    color: #4361ee;
-    font-size: 0.8rem;
-    font-weight: 600;
-    background: transparent;
-    border: 0;
+  // Cancel button
+
+  .btn-outline-danger {
     white-space: nowrap;
 
-    &:hover {
-      color: #3046b5;
-    }
-
-    &:focus-visible {
-      outline: 2px solid #4361ee;
-      outline-offset: 3px;
-      border-radius: 3px;
+    &:disabled {
+      cursor: not-allowed;
+      opacity: 0.65;
     }
   }
 
@@ -351,32 +369,54 @@
     }
   }
 
-  // Inline booking details
+  // Booking details modal
 
-  &__details {
-    padding: 24px;
-    background: #fafbff;
-    border-top: 1px solid #eaecf0;
+  &__modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1055;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(15, 23, 42, 0.55);
+    overflow-y: auto;
+    animation: customer-bookings-fade-in 0.18s ease-out;
   }
 
-  &__details-header {
+  &__modal {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 680px;
+    max-height: calc(100vh - 40px);
+    background: #fff;
+    border: 1px solid rgba(234, 236, 240, 0.9);
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(16, 24, 40, 0.22);
+    overflow: hidden;
+    animation: customer-bookings-modal-in 0.2s ease-out;
+  }
+
+  &__modal-header {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
     gap: 16px;
-    margin-bottom: 24px;
+    padding: 24px;
+    border-bottom: 1px solid #eaecf0;
 
     h3 {
-      margin: 6px 0;
+      margin: 8px 0 4px;
       color: #202939;
-      font-size: 1.125rem;
+      font-size: 1.2rem;
       font-weight: 700;
     }
 
     p {
       margin: 0;
       color: #667085;
-      font-size: 0.8rem;
+      font-size: 0.825rem;
     }
   }
 
@@ -389,25 +429,38 @@
 
   &__close-button {
     display: flex;
+    flex: 0 0 34px;
     align-items: center;
     justify-content: center;
     width: 34px;
     height: 34px;
+    padding: 0;
     color: #667085;
     background: #fff;
     border: 1px solid #d0d5dd;
     border-radius: 7px;
+    cursor: pointer;
 
     &:hover {
       color: #202939;
       background: #f2f4f7;
     }
+
+    &:focus-visible {
+      outline: 2px solid #4361ee;
+      outline-offset: 2px;
+    }
+  }
+
+  &__modal-body {
+    padding: 24px;
+    overflow-y: auto;
   }
 
   &__details-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 20px;
+    gap: 22px 24px;
 
     > div {
       display: flex;
@@ -429,9 +482,65 @@
     }
   }
 
-  &__details-address,
-  &__details-notes {
+  &__details-full {
     grid-column: 1 / -1;
+  }
+
+  &__provider {
+    margin-top: 24px;
+    padding: 18px;
+    background: #f8f9fc;
+    border: 1px solid #eaecf0;
+    border-radius: 8px;
+
+    h4 {
+      margin: 0 0 12px;
+      color: #202939;
+      font-size: 0.95rem;
+      font-weight: 700;
+    }
+
+    p {
+      margin: 8px 0 0;
+      color: #475467;
+      font-size: 0.825rem;
+      overflow-wrap: anywhere;
+    }
+  }
+
+  &__modal-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 16px 24px;
+    border-top: 1px solid #eaecf0;
+    background: #fff;
+  }
+}
+
+// Modal animations
+
+@keyframes customer-bookings-fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes customer-bookings-modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.99);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }
 
@@ -521,8 +630,21 @@
       padding: 13px 14px;
     }
 
-    &__details {
-      padding: 18px 14px;
+    &__modal-backdrop {
+      padding: 12px;
+    }
+
+    &__modal {
+      max-height: calc(100vh - 24px);
+    }
+
+    &__modal-header,
+    &__modal-body {
+      padding: 18px;
+    }
+
+    &__modal-footer {
+      padding: 14px 18px;
     }
 
     &__details-grid {
@@ -530,8 +652,7 @@
       gap: 18px;
     }
 
-    &__details-address,
-    &__details-notes {
+    &__details-full {
       grid-column: auto;
     }
   }
@@ -552,5 +673,14 @@
     &__refresh {
       font-size: 0.75rem;
     }
+  }
+}
+
+// Respect reduced-motion preferences
+
+@media (prefers-reduced-motion: reduce) {
+  .customer-bookings__modal-backdrop,
+  .customer-bookings__modal {
+    animation: none;
   }
 }
